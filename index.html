@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ReplyLikePro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+
+<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+
+  <h1 class="text-2xl font-bold text-center mb-4">ReplyLikePro</h1>
+
+  <!-- Situation -->
+  <p class="text-sm text-gray-500 mb-2">Choose situation</p>
+
+  <div class="grid grid-cols-2 gap-2 mb-4">
+    <button onclick="setType('boss', this)" class="btn bg-gray-200">👔 Boss</button>
+    <button onclick="setType('crush', this)" class="btn bg-gray-200">❤️ Crush</button>
+    <button onclick="setType('polite', this)" class="btn bg-gray-200">🙏 Polite</button>
+    <button onclick="setType('savage', this)" class="btn bg-gray-200">😈 Savage</button>
+    <button onclick="setType('avoid', this)" class="btn bg-gray-200">🏃 Avoid</button>
+  </div>
+
+  <!-- Input -->
+  <textarea id="message"
+  placeholder="Paste message you received (e.g. boss, friend, crush...)"
+  class="w-full p-3 border rounded mb-3 focus:outline-none focus:ring-2 focus:ring-black">
+</textarea>
+
+  <!-- Button -->
+  <button id="generateBtn"
+  onclick="generate()"
+  class="w-full bg-black text-white p-3 rounded mb-4 hover:opacity-90">
+  Generate Reply
+</button>
+
+  <!-- Loader -->
+  <div id="loading" class="hidden text-center mb-3">⏳ Generating...</div>
+
+  <!-- Output -->
+  <div id="output" class="space-y-3"></div>
+
+</div>
+
+<script>
+let selectedType = "boss";
+
+function setType(type, el) {
+  selectedType = type;
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    btn.classList.remove("bg-black", "text-white");
+    btn.classList.add("bg-gray-200", "text-black");
+  });
+
+  el.classList.remove("bg-gray-200", "text-black");
+  el.classList.add("bg-black", "text-white");
+}
+
+async function generate() {
+  const message = document.getElementById("message").value;
+  const btn = document.getElementById("generateBtn");
+
+  if (!message) {
+    alert("Please paste a message first");
+    return;
+  }
+
+  // 🔥 disable button
+  btn.disabled = true;
+  btn.innerText = "Generating...";
+  btn.classList.add("opacity-50");
+
+  document.getElementById("loading").classList.remove("hidden");
+
+  try {
+    const res = await fetch("/ai/reply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message,
+        type: selectedType
+      })
+    });
+
+    const data = await res.json();
+
+    const output = document.getElementById("output");
+
+    output.innerHTML = `
+      ${card("Safe ✅", data.replies.safe)}
+      ${card("Better 🔥", data.replies.better)}
+      ${card("Bold 😈", data.replies.bold)}
+    `;
+  } catch (err) {
+    alert("Something went wrong");
+  }
+
+  // 🔥 enable button again
+  btn.disabled = false;
+  btn.innerText = "Generate Reply";
+  btn.classList.remove("opacity-50");
+
+  document.getElementById("loading").classList.add("hidden");
+}
+
+function card(title, text) {
+    return `
+  <div class="p-4 border rounded-xl bg-gray-50 shadow-sm">
+    <div class="flex justify-between items-center mb-2">
+      <strong>${title}</strong>
+      <button onclick="copyText(\`${text}\`)">📋</button>
+    </div>
+    <p class="text-sm leading-relaxed">${text}</p>
+  </div>
+`;
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text);
+  alert("Copied!");
+}
+
+window.onload = () => {
+  const firstBtn = document.querySelector(".btn");
+  if (firstBtn) {
+    firstBtn.classList.remove("bg-gray-200", "text-black");
+    firstBtn.classList.add("bg-black", "text-white");
+  }
+};
+</script>
+
+<style>
+.btn {
+  padding: 10px;
+  text-align: center;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: #ddd;
+}
+</style>
+
+</body>
+</html>

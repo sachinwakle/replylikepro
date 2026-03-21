@@ -1,0 +1,17 @@
+{
+  "name": "replylikepro",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/static": "^9.0.0",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.8.2"
+  }
+}
