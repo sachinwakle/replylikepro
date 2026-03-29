@@ -85,7 +85,7 @@ fastify.post("/ai/reply", async (req, reply) => {
     const data = await response.json();
 
     // Debug (optional)
-    console.log("GEMINI RESPONSE:", JSON.stringify(data, null, 2));
+    // console.log("GEMINI RESPONSE:", JSON.stringify(data, null, 2));
     const rawText =
   data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
