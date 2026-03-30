@@ -200,6 +200,21 @@
       .rotating {
         animation: rotate 1s linear infinite;
       }
+
+      /* Undo bar entrance animation */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .undo-fade-in {
+        animation: fadeInUp 0.2s ease;
+      }
     </style>
   </head>
   <body class="bg-background text-on-surface min-h-screen">
@@ -346,12 +361,46 @@
               >Original Message</label
             >
             <div class="relative group">
+              <button
+                id="clearMessageBtn"
+                type="button"
+                onclick="clearMessageInput()"
+                class="hidden absolute right-3 top-3 z-10 w-10 h-10 rounded-lg bg-surface-container-lowest/80 backdrop-blur border border-outline-variant/15 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high hover:-translate-y-1 hover:shadow-md transition-all duration-200 shadow-sm flex items-center justify-center"
+                title="Clear message"
+                aria-label="Clear message"
+              >
+                <span class="material-symbols-outlined text-[20px] leading-none"
+                  >close</span
+                >
+              </button>
               <textarea
                 id="messageInput"
-                class="w-full bg-surface-container-low border-none rounded-xl p-6 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg leading-relaxed outline-none"
+                class="w-full bg-surface-container-low border-none rounded-xl py-6 pl-6 pr-16 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg leading-relaxed outline-none"
                 placeholder="Paste the message you received here..."
                 rows="8"
               ></textarea>
+              <div
+                id="messageUndoBar"
+                class="hidden absolute right-3 bottom-3 z-10 px-4 py-2 rounded-xl backdrop-blur-md bg-on-surface/70 border border-outline-variant/15 shadow-lg inline-flex items-center gap-4"
+                role="status"
+                aria-live="polite"
+              >
+                <span class="text-sm text-on-primary font-medium opacity-80"
+                  >Cleared</span
+                >
+                <button
+                  id="messageUndoBtn"
+                  type="button"
+                  onclick="undoClearMessageInput()"
+                  class="inline-flex items-center gap-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+                >
+                  <span
+                    class="material-symbols-outlined text-[18px] leading-none no-underline"
+                    >undo</span
+                  >
+                  <span class="hover:underline">Undo</span>
+                </button>
+              </div>
             </div>
           </section>
           <!-- Generate Action -->
@@ -384,11 +433,11 @@
             <!-- Safe Card -->
             <div
               id="safeCard"
-              class="p-8 rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/10 group"
+              class="p-8 rounded-xl bg-surface-container-lowest shadow-md border border-outline-variant/20 relative overflow-hidden"
             >
               <div class="flex justify-between items-start mb-6">
                 <span
-                  class="px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-[0.7rem] font-bold tracking-widest uppercase"
+                  class="px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-[0.7rem] font-bold tracking-widest uppercase shadow-sm"
                   >Safe ✅</span
                 >
                 <div class="flex gap-2">
@@ -468,11 +517,11 @@
             <!-- Bold Card -->
             <div
               id="boldCard"
-              class="p-8 rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/10 group"
+              class="p-8 rounded-xl bg-surface-container-lowest shadow-md border border-outline-variant/20 relative overflow-hidden"
             >
               <div class="flex justify-between items-start mb-6">
                 <span
-                  class="px-4 py-1.5 rounded-full bg-tertiary-container/20 text-tertiary text-[0.7rem] font-bold tracking-widest uppercase"
+                  class="px-4 py-1.5 rounded-full bg-tertiary-container/20 text-tertiary text-[0.7rem] font-bold tracking-widest uppercase shadow-sm"
                   >Bold 😈</span
                 >
                 <div class="flex gap-2">
@@ -750,8 +799,75 @@
       // Initialize on page load
       document.addEventListener("DOMContentLoaded", () => {
         // Boss button is already pre-selected in HTML
+        wireMessageInputUX();
         console.log("ReplyLikePro initialized");
       });
+
+      let lastMessageValue = "";
+      let messageUndoTimerId = null;
+
+      function wireMessageInputUX() {
+        const input = document.getElementById("messageInput");
+        const clearBtn = document.getElementById("clearMessageBtn");
+        const undoBar = document.getElementById("messageUndoBar");
+        if (!input || !clearBtn) return;
+
+        const syncClearButton = () => {
+          const hasValue = input.value.trim().length > 0;
+          clearBtn.classList.toggle("hidden", !hasValue);
+
+          // If the user starts typing after a clear, hide undo to prevent
+          // accidentally overwriting newly-entered text.
+          if (hasValue && undoBar) undoBar.classList.add("hidden");
+        };
+
+        input.addEventListener("input", syncClearButton);
+        input.addEventListener("change", syncClearButton);
+        syncClearButton();
+      }
+
+      function clearMessageInput() {
+        const input = document.getElementById("messageInput");
+        const clearBtn = document.getElementById("clearMessageBtn");
+        const undoBar = document.getElementById("messageUndoBar");
+        if (!input) return;
+
+        const currentValue = input.value;
+        if (!currentValue.trim()) return;
+
+        lastMessageValue = currentValue;
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        if (clearBtn) clearBtn.classList.add("hidden");
+        if (undoBar) {
+          undoBar.classList.remove("hidden", "undo-fade-in");
+          void undoBar.offsetWidth; // force reflow to restart animation
+          undoBar.classList.add("undo-fade-in");
+        }
+        input.focus();
+
+        if (messageUndoTimerId) clearTimeout(messageUndoTimerId);
+        messageUndoTimerId = setTimeout(() => {
+          const bar = document.getElementById("messageUndoBar");
+          if (bar) bar.classList.add("hidden");
+          messageUndoTimerId = null;
+        }, 3000);
+      }
+
+      function undoClearMessageInput() {
+        const input = document.getElementById("messageInput");
+        const undoBar = document.getElementById("messageUndoBar");
+        if (!input) return;
+
+        input.value = lastMessageValue || "";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        if (undoBar) undoBar.classList.add("hidden");
+
+        if (messageUndoTimerId) clearTimeout(messageUndoTimerId);
+        messageUndoTimerId = null;
+
+        input.focus();
+      }
     </script>
   </body>
 </html>
