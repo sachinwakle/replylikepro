@@ -171,6 +171,14 @@ return {
 //   }
 // });
 
+fastify.get("/health", async (request, reply) => {
+  reply.code(200).send({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 const start = async () => {
   try {
     await fastify.listen({
